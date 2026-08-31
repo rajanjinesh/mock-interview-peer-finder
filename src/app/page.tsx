@@ -158,12 +158,13 @@ export default function MockInterviewPeerFinderApp() {
   const [matchSystemResult, setMatchSystemResult] = useState<MatchSystemResult | null>(null);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
 
-  // Screen 4: Request & Schedule State
+  // Screen 4 & Alternate States State
   const [selectedPeerForRequest, setSelectedPeerForRequest] = useState<any | null>(null);
-  const [interactionStatus, setInteractionStatus] = useState<'REQUESTED' | 'APPROVED' | 'SCHEDULED'>('REQUESTED');
+  const [interactionStatus, setInteractionStatus] = useState<'REQUESTED' | 'APPROVED' | 'SCHEDULED' | 'DECLINED'>('REQUESTED');
   const [selectedScheduledSlot, setSelectedScheduledSlot] = useState<string>('');
   const [interactionRecordId, setInteractionRecordId] = useState<string | null>(null);
   const [isProcessingInteraction, setIsProcessingInteraction] = useState<boolean>(false);
+  const [isNotificationSubscribed, setIsNotificationSubscribed] = useState<boolean>(false);
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
@@ -412,6 +413,26 @@ export default function MockInterviewPeerFinderApp() {
       setInteractionStatus('APPROVED');
     } catch (err) {
       console.error('Error updating approval status:', err);
+    } finally {
+      setIsProcessingInteraction(false);
+    }
+  };
+
+  const handleSimulatePeerDecline = async () => {
+    setIsProcessingInteraction(true);
+    try {
+      if (interactionRecordId) {
+        await supabase
+          .from('peer_interactions')
+          .update({
+            status: 'declined',
+            decline_reason: 'Peer schedule conflict',
+          })
+          .eq('id', interactionRecordId);
+      }
+      setInteractionStatus('DECLINED');
+    } catch (err) {
+      console.error('Error updating decline status:', err);
     } finally {
       setIsProcessingInteraction(false);
     }
@@ -1007,36 +1028,50 @@ export default function MockInterviewPeerFinderApp() {
               </div>
             )}
 
-            {/* NO MATCH STATE CARD */}
+            {/* ALTERNATE STATE 1: NO SUITABLE MATCH */}
             {matchSystemResult && matchSystemResult.status === 'NO_MATCH' ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center space-y-4">
-                <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center space-y-5">
+                <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-extrabold shadow-xs">
                   !
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-amber-900">
-                    No Direct Peer Matches Found
+                <div className="space-y-2">
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-amber-200 text-amber-900 uppercase tracking-wider">
+                    Alternate State 1
+                  </span>
+                  <h3 className="text-2xl font-extrabold text-amber-950">
+                    No suitable match found right now.
                   </h3>
-                  <p className="mt-2 text-sm text-amber-800 max-w-lg mx-auto leading-relaxed">
+                  <p className="text-sm text-amber-800 max-w-md mx-auto leading-relaxed">
                     No active peers currently match both your target role (<span className="font-semibold">{targetRole === 'Other' ? customRole : targetRole}</span>) and interview type (<span className="font-semibold">{interviewType}</span>).
                   </p>
                 </div>
-                <div className="pt-2 flex justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(1)}
-                    className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    Adjust Target Role / Interview Format
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="px-5 py-2.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    Adjust Availability
-                  </button>
-                </div>
+
+                {isNotificationSubscribed ? (
+                  <div className="bg-white border border-amber-200 p-4 rounded-xl max-w-md mx-auto text-xs text-emerald-800 font-semibold flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                    Notification preference saved! We will notify you when a matching peer registers.
+                  </div>
+                ) : (
+                  <div className="pt-2 flex flex-col sm:flex-row justify-center items-center gap-3">
+                    {/* CTA 1: Widen My Search */}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                    >
+                      Widen My Search
+                    </button>
+
+                    {/* CTA 2: Notify Me When Available */}
+                    <button
+                      type="button"
+                      onClick={() => setIsNotificationSubscribed(true)}
+                      className="w-full sm:w-auto px-6 py-3 bg-amber-200 hover:bg-amber-300 text-amber-950 rounded-xl text-xs font-bold transition-all border border-amber-300 shadow-2xs cursor-pointer"
+                    >
+                      Notify Me When Available
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               /* DYNAMIC TOP MATCH CARDS LIST */
@@ -1296,29 +1331,79 @@ export default function MockInterviewPeerFinderApp() {
                   </div>
                 </div>
 
-                {/* Simulation Trigger CTA */}
+                {/* Simulation Trigger CTAs (Approval or Decline) */}
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-indigo-100">
                   <span className="text-xs text-indigo-700 font-medium">
                     ⚡ Prototype Simulation Mode:
                   </span>
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={handleSimulatePeerApproval}
+                      disabled={isProcessingInteraction}
+                      className="flex-1 sm:flex-initial px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {isProcessingInteraction ? 'Processing...' : 'Simulate Peer Approval →'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSimulatePeerDecline}
+                      disabled={isProcessingInteraction}
+                      className="flex-1 sm:flex-initial px-5 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold rounded-xl border border-amber-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      Simulate Peer Decline ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ALTERNATE STATE 2: PEER DECLINES */}
+            {interactionStatus === 'DECLINED' && (
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-8 space-y-6 text-center sm:text-left shadow-sm">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 border-b border-rose-200 pb-6">
+                  <div className="w-14 h-14 bg-rose-100 text-rose-700 rounded-full flex items-center justify-center text-2xl font-extrabold shadow-xs shrink-0">
+                    !
+                  </div>
+                  <div className="space-y-1">
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-rose-200 text-rose-900 uppercase tracking-wider mb-1">
+                      Alternate State 2
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-rose-950 tracking-tight">
+                      Your selected peer isn't available.
+                    </h2>
+                    <p className="text-sm text-rose-800 leading-relaxed">
+                      Unfortunately, <span className="font-semibold">{selectedPeerForRequest?.peer_profile?.full_name}</span> is currently unable to accept practice mock interview requests.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-rose-100 rounded-xl p-5 space-y-3 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Next Recommended Step
+                  </h3>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Your previous search results are preserved. You can select another top-ranked match from your suitable peer list.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* CTA: Choose Another Peer */}
                   <button
                     type="button"
-                    onClick={handleSimulatePeerApproval}
-                    disabled={isProcessingInteraction}
-                    className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    onClick={() => {
+                      setInteractionStatus('REQUESTED');
+                      setSelectedPeerForRequest(null);
+                      setCurrentStep(3);
+                    }}
+                    className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
                   >
-                    {isProcessingInteraction ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Simulating Approval...
-                      </>
-                    ) : (
-                      'Simulate Peer Approval →'
-                    )}
+                    Choose Another Peer →
                   </button>
+
+                  <span className="text-xs text-rose-800 font-semibold">
+                    Top 3 Matches Preserved (Matching System)
+                  </span>
                 </div>
               </div>
             )}
