@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
@@ -50,8 +50,88 @@ const TIME_SLOT_OPTIONS = [
   { id: 'Weekday Afternoons', label: 'Weekday Afternoons', detail: 'Mon–Fri, 12:00 PM – 5:00 PM' },
 ];
 
+const MOCK_MATCH_DATA = [
+  {
+    id: 'peer-1',
+    rank: 1,
+    peer_profile: {
+      full_name: 'Alex Chen',
+      target_role: 'Product Manager',
+      seniority_level: 'Senior',
+      interview_type: 'Product Design',
+      domain_skills: ['Fintech', 'Metrics', 'User Growth'],
+    },
+    match_score: 95,
+    common_availability: ['Weekday Evenings', 'Weekend Afternoon'],
+    ai_explanation: {
+      why_suitable:
+        'Alex is a Senior Product Manager with strong Fintech domain expertise. Their background in user metrics and product design aligns exceptionally well with your targeted interview type.',
+      key_strengths: [
+        'Direct domain alignment in Fintech & Product Metrics',
+        'Matching seniority level (Senior PM)',
+        'Overlapping availability on Weekday Evenings',
+      ],
+      trade_offs_gaps: [
+        'Slightly less emphasis on B2B enterprise strategy',
+        'Available primarily during late evening hours',
+      ],
+    },
+  },
+  {
+    id: 'peer-2',
+    rank: 2,
+    peer_profile: {
+      full_name: 'Priya Sharma',
+      target_role: 'Product Manager',
+      seniority_level: 'Senior',
+      interview_type: 'Product Design',
+      domain_skills: ['Execution', 'B2B SaaS', 'Metrics'],
+    },
+    match_score: 88,
+    common_availability: ['Weekend Morning', 'Weekday Mornings'],
+    ai_explanation: {
+      why_suitable:
+        'Priya brings extensive experience in Product Execution and B2B SaaS frameworks. They offer excellent constructive feedback for product design case studies.',
+      key_strengths: [
+        'Strong B2B SaaS & execution methodology focus',
+        'High overlap on product design interview structure',
+      ],
+      trade_offs_gaps: [
+        'Domain focus leans more towards B2B than consumer Fintech',
+      ],
+    },
+  },
+  {
+    id: 'peer-3',
+    rank: 3,
+    peer_profile: {
+      full_name: 'Marcus Vance',
+      target_role: 'Product Manager',
+      seniority_level: 'Mid-Level',
+      interview_type: 'Product Design',
+      domain_skills: ['Fintech', 'Product Strategy'],
+    },
+    match_score: 79,
+    common_availability: ['Weekday Evenings'],
+    ai_explanation: {
+      why_suitable:
+        'Marcus has active Fintech interview experience and strong product strategy skills, providing a great peer partner for core case practice.',
+      key_strengths: [
+        'Active Fintech domain practitioner',
+        'Identical target interview format (Product Design)',
+      ],
+      trade_offs_gaps: [
+        'Slight seniority difference (Mid-Level vs Senior)',
+        'Fewer overlapping availability windows',
+      ],
+    },
+  },
+];
+
 export default function MockInterviewPeerFinderApp() {
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [matchCountView, setMatchCountView] = useState<number>(3);
+  const [requestedPeerId, setRequestedPeerId] = useState<string | null>(null);
 
   const [targetRole, setTargetRole] = useState<string>('Product Manager');
   const [customRole, setCustomRole] = useState<string>('');
@@ -235,6 +315,7 @@ export default function MockInterviewPeerFinderApp() {
 
       setCompletedRecord(recordData);
       setIsScreen2Complete(true);
+      setCurrentStep(3);
     } catch (err: any) {
       console.error('Error saving availability:', err);
       setServerError(err.message || 'Failed to save availability choices. Please try again.');
@@ -243,45 +324,69 @@ export default function MockInterviewPeerFinderApp() {
     }
   };
 
+  const handleRequestPeer = (peerId: string) => {
+    setRequestedPeerId(peerId);
+  };
+
+  const displayedMatches = MOCK_MATCH_DATA.slice(0, matchCountView);
+
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-3xl mx-auto bg-white shadow-sm border border-slate-200 rounded-xl p-6 sm:p-10">
         
         <div className="border-b border-slate-200 pb-6 mb-8">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                onClick={() => setCurrentStep(1)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
                   currentStep === 1
                     ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                 }`}
               >
                 Step 1: Profile Intake
               </span>
               <span className="text-slate-300">→</span>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                onClick={() => setCurrentStep(2)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
                   currentStep === 2
                     ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-slate-100 text-slate-400 border-slate-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                 }`}
               >
                 Step 2: Availability
               </span>
+              <span className="text-slate-300">→</span>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                  currentStep === 3
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    : 'bg-slate-100 text-slate-400 border-slate-200'
+                }`}
+              >
+                Step 3: Top 3 Matches
+              </span>
             </div>
-            <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+
+            <span className="text-xs text-slate-400 font-mono hidden md:inline">
               Mock Interview Peer Finder
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {currentStep === 1 ? 'Interview Requirements Intake' : 'Set Your Practice Availability'}
+            {currentStep === 1 && 'Interview Requirements Intake'}
+            {currentStep === 2 && 'Set Your Practice Availability'}
+            {currentStep === 3 && 'Top Suitable Peer Matches'}
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
-            {currentStep === 1
-              ? 'Provide details of the interview you are preparing for. These criteria will be used to determine suitable peer matches.'
-              : 'Select the days and time slots when you are available for mock interview practice sessions.'}
+            {currentStep === 1 &&
+              'Provide details of the interview you are preparing for. These criteria will be used to determine suitable peer matches.'}
+            {currentStep === 2 &&
+              'Select the days and time slots when you are available for mock interview practice sessions.'}
+            {currentStep === 3 &&
+              'Below are the top suitable peers for your interview requirements. Review their match strength, common availability, and suitability explanations.'}
           </p>
         </div>
 
@@ -697,6 +802,221 @@ export default function MockInterviewPeerFinderApp() {
                 </div>
               </form>
             )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* SCREEN 3: TOP 3 MATCHES                                  */}
+        {/* ========================================================= */}
+        {currentStep === 3 && (
+          <div className="space-y-8">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                  Active Request Criteria
+                </span>
+                <span className="text-sm font-semibold text-slate-900">
+                  {targetRole === 'Other' ? customRole : targetRole} ({seniorityLevel}) • {interviewType}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-slate-200 text-xs">
+                <span className="text-slate-400 px-2 font-medium">Test View:</span>
+                <button
+                  type="button"
+                  onClick={() => setMatchCountView(3)}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                    matchCountView === 3
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  3 Matches
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMatchCountView(2)}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                    matchCountView === 2
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  2 Matches
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMatchCountView(1)}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                    matchCountView === 1
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  1 Match
+                </button>
+              </div>
+            </div>
+
+            {requestedPeerId && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
+                    ✓
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-emerald-900">
+                      Peer Interaction Requested
+                    </h4>
+                    <p className="text-xs text-emerald-700">
+                      Request initiated for peer ID <span className="font-mono">{requestedPeerId}</span>. Ready for later Request & Scheduling flow.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRequestedPeerId(null)}
+                  className="text-xs text-emerald-800 hover:text-emerald-950 underline font-medium cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {displayedMatches.map((match) => (
+                <div
+                  key={match.id}
+                  className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-5"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          #{match.rank} Match
+                        </span>
+                        <span className="text-xs font-semibold text-slate-400">
+                          {match.peer_profile.seniority_level} {match.peer_profile.target_role}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900">
+                        {match.peer_profile.full_name}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-xs text-slate-400 block font-medium">Match Strength</span>
+                        <span className="text-lg font-extrabold text-emerald-600">
+                          {match.match_score}%
+                        </span>
+                      </div>
+                      <div className="w-12 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className="bg-emerald-500 h-2.5 rounded-full"
+                          style={{ width: `${match.match_score}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Common Availability:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {match.common_availability.map((slot) => (
+                        <span
+                          key={slot}
+                          className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-white text-slate-800 border border-slate-200 shadow-2xs"
+                        >
+                          {slot}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center gap-2 border-b border-indigo-100 pb-2.5">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                        AI Match Reasoning & Analysis
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Why this person is suitable:
+                      </h4>
+                      <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                        {match.ai_explanation.why_suitable}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      <div className="bg-white border border-emerald-100 rounded-lg p-3">
+                        <h5 className="text-xs font-bold text-emerald-800 flex items-center gap-1 mb-1.5">
+                          <span>✓</span> Key Strengths:
+                        </h5>
+                        <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                          {match.ai_explanation.key_strengths.map((str, idx) => (
+                            <li key={idx}>{str}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="bg-white border border-amber-100 rounded-lg p-3">
+                        <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1 mb-1.5">
+                          <span>!</span> Trade-offs & Gaps:
+                        </h5>
+                        <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                          {match.ai_explanation.trade_offs_gaps.map((gap, idx) => (
+                            <li key={idx}>{gap}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between">
+                    <span className="text-xs text-slate-400">
+                      Format: {match.peer_profile.interview_type}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestPeer(match.id)}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-xs cursor-pointer ${
+                        requestedPeerId === match.id
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {requestedPeerId === match.id ? '✓ Requested' : 'Request This Peer'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className="text-xs text-slate-500 hover:text-slate-800 font-medium underline cursor-pointer"
+              >
+                ← Back to Availability
+              </button>
+
+              <span className="text-xs font-medium text-slate-400">
+                Screen 3 Complete. Top 3 Matches displayed.
+              </span>
+            </div>
+
           </div>
         )}
       </div>
