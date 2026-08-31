@@ -130,7 +130,7 @@ const MOCK_MATCH_DATA = [
 ];
 
 export default function MockInterviewPeerFinderApp() {
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const [matchCountView, setMatchCountView] = useState<number>(3);
   const [requestedPeerId, setRequestedPeerId] = useState<string | null>(null);
 
@@ -157,6 +157,13 @@ export default function MockInterviewPeerFinderApp() {
   const [completedRecord, setCompletedRecord] = useState<any | null>(null);
   const [matchSystemResult, setMatchSystemResult] = useState<MatchSystemResult | null>(null);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
+
+  // Screen 4: Request & Schedule State
+  const [selectedPeerForRequest, setSelectedPeerForRequest] = useState<any | null>(null);
+  const [interactionStatus, setInteractionStatus] = useState<'REQUESTED' | 'APPROVED' | 'SCHEDULED'>('REQUESTED');
+  const [selectedScheduledSlot, setSelectedScheduledSlot] = useState<string>('');
+  const [interactionRecordId, setInteractionRecordId] = useState<string | null>(null);
+  const [isProcessingInteraction, setIsProcessingInteraction] = useState<boolean>(false);
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
@@ -363,8 +370,72 @@ export default function MockInterviewPeerFinderApp() {
     }
   };
 
-  const handleRequestPeer = (peerId: string) => {
-    setRequestedPeerId(peerId);
+  const handleInitiatePeerRequest = async (matchObj: any) => {
+    setSelectedPeerForRequest(matchObj);
+    setInteractionStatus('REQUESTED');
+    const defaultSlot = matchObj.common_availability && matchObj.common_availability.length > 0
+      ? matchObj.common_availability[0]
+      : (selectedAvailability[0] || 'Weekday Evenings');
+    setSelectedScheduledSlot(defaultSlot);
+
+    try {
+      const peerId = matchObj.peer_profile?.id || matchObj.id;
+      if (requestId && peerId) {
+        const { data, error } = await supabase
+          .from('peer_interactions')
+          .insert({
+            match_request_id: requestId,
+            peer_id: peerId,
+            status: 'requested',
+          })
+          .select()
+          .single();
+
+        if (data) setInteractionRecordId(data.id);
+      }
+    } catch (err) {
+      console.error('Error saving interaction in Supabase:', err);
+    }
+
+    setCurrentStep(4);
+  };
+
+  const handleSimulatePeerApproval = async () => {
+    setIsProcessingInteraction(true);
+    try {
+      if (interactionRecordId) {
+        await supabase
+          .from('peer_interactions')
+          .update({ status: 'approved' })
+          .eq('id', interactionRecordId);
+      }
+      setInteractionStatus('APPROVED');
+    } catch (err) {
+      console.error('Error updating approval status:', err);
+    } finally {
+      setIsProcessingInteraction(false);
+    }
+  };
+
+  const handleScheduleMockInterview = async () => {
+    if (!selectedScheduledSlot) return;
+    setIsProcessingInteraction(true);
+    try {
+      if (interactionRecordId) {
+        await supabase
+          .from('peer_interactions')
+          .update({
+            status: 'scheduled',
+            scheduled_at: new Date().toISOString(),
+          })
+          .eq('id', interactionRecordId);
+      }
+      setInteractionStatus('SCHEDULED');
+    } catch (err) {
+      console.error('Error scheduling interview:', err);
+    } finally {
+      setIsProcessingInteraction(false);
+    }
   };
 
   const displayedMatches = MOCK_MATCH_DATA.slice(0, matchCountView);
@@ -399,13 +470,24 @@ export default function MockInterviewPeerFinderApp() {
               </span>
               <span className="text-slate-300">→</span>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                onClick={() => setCurrentStep(3)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
                   currentStep === 3
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`}
+              >
+                Step 3: Top 3 Matches
+              </span>
+              <span className="text-slate-300">→</span>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                  currentStep === 4
                     ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                     : 'bg-slate-100 text-slate-400 border-slate-200'
                 }`}
               >
-                Step 3: Top 3 Matches
+                Step 4: Request & Schedule
               </span>
             </div>
 
@@ -418,6 +500,7 @@ export default function MockInterviewPeerFinderApp() {
             {currentStep === 1 && 'Interview Requirements Intake'}
             {currentStep === 2 && 'Set Your Practice Availability'}
             {currentStep === 3 && 'Top Suitable Peer Matches'}
+            {currentStep === 4 && 'Request & Schedule Mock Interview'}
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
             {currentStep === 1 &&
@@ -426,6 +509,8 @@ export default function MockInterviewPeerFinderApp() {
               'Select the days and time slots when you are available for mock interview practice sessions.'}
             {currentStep === 3 &&
               'Below are the top suitable peers for your interview requirements. Review their match strength, common availability, and suitability explanations.'}
+            {currentStep === 4 &&
+              'Request approval from your selected peer, view common available time slots, and schedule your mock interview session.'}
           </p>
         </div>
 
@@ -1110,14 +1195,10 @@ export default function MockInterviewPeerFinderApp() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleRequestPeer(match.id)}
-                        className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-xs cursor-pointer ${
-                          requestedPeerId === match.id
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                        }`}
+                        onClick={() => handleInitiatePeerRequest(match)}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-xs cursor-pointer"
                       >
-                        {requestedPeerId === match.id ? '✓ Requested' : 'Request This Peer'}
+                        Request This Peer
                       </button>
                     </div>
                   </div>
@@ -1139,6 +1220,307 @@ export default function MockInterviewPeerFinderApp() {
               </span>
             </div>
 
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* SCREEN 4: REQUEST & SCHEDULE                              */}
+        {/* ========================================================= */}
+        {currentStep === 4 && (
+          <div className="space-y-8">
+            {/* Peer Selected Summary Header */}
+            {selectedPeerForRequest ? (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                    {selectedPeerForRequest.peer_profile?.full_name?.[0] || 'P'}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                      Selected Practice Peer
+                    </span>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {selectedPeerForRequest.peer_profile?.full_name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {selectedPeerForRequest.peer_profile?.seniority_level} {selectedPeerForRequest.peer_profile?.target_role} • {selectedPeerForRequest.peer_profile?.interview_type}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 px-3.5 py-1.5 rounded-lg text-right">
+                  <span className="text-[11px] text-slate-400 font-medium block">Match Strength</span>
+                  <span className="text-base font-extrabold text-emerald-600">
+                    {selectedPeerForRequest.match_score}%
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm">
+                No peer selected. Please return to Screen 3 to select a match.
+              </div>
+            )}
+
+            {/* STEP 4A: REQUEST SENT (PENDING APPROVAL) */}
+            {interactionStatus === 'REQUESTED' && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6 sm:p-8 space-y-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5 font-bold">
+                    i
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-indigo-950">
+                      Request sent. We'll reach out to your selected peer for approval.
+                    </h3>
+                    <p className="text-xs text-indigo-800 leading-relaxed">
+                      Your interview request has been submitted to <span className="font-semibold">{selectedPeerForRequest?.peer_profile?.full_name}</span>. In a live environment, the peer receives a notification to approve or decline the session.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-indigo-100 rounded-xl p-5 space-y-4 shadow-2xs">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-500 uppercase tracking-wider">
+                      Request Details
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200 text-[11px]">
+                      Status: PENDING PEER APPROVAL
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+                    <div><span className="text-slate-400">Target Role:</span> <span className="font-semibold">{targetRole === 'Other' ? customRole : targetRole}</span></div>
+                    <div><span className="text-slate-400">Interview Type:</span> <span className="font-semibold">{interviewType}</span></div>
+                    <div><span className="text-slate-400">Seniority:</span> <span className="font-semibold">{seniorityLevel}</span></div>
+                    <div><span className="text-slate-400">Request Record ID:</span> <span className="font-mono text-[11px]">{interactionRecordId || 'Saved in Supabase'}</span></div>
+                  </div>
+                </div>
+
+                {/* Simulation Trigger CTA */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-indigo-100">
+                  <span className="text-xs text-indigo-700 font-medium">
+                    ⚡ Prototype Simulation Mode:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSimulatePeerApproval}
+                    disabled={isProcessingInteraction}
+                    className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isProcessingInteraction ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Simulating Approval...
+                      </>
+                    ) : (
+                      'Simulate Peer Approval →'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4B: PEER APPROVED - SELECT TIME SLOT */}
+            {interactionStatus === 'APPROVED' && (
+              <div className="space-y-6">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                    ✓
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-emerald-950">
+                      Peer Approval Confirmed!
+                    </h3>
+                    <p className="text-xs text-emerald-800">
+                      {selectedPeerForRequest?.peer_profile?.full_name} has accepted your request. Please select a common available practice time slot.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Select Common Practice Time Slot
+                  </h4>
+
+                  {selectedPeerForRequest?.common_availability && selectedPeerForRequest.common_availability.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {selectedPeerForRequest.common_availability.map((slot: string) => (
+                        <label
+                          key={slot}
+                          className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
+                            selectedScheduledSlot === slot
+                              ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                              : 'border-slate-200 hover:border-slate-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="scheduled_slot"
+                              value={slot}
+                              checked={selectedScheduledSlot === slot}
+                              onChange={() => setSelectedScheduledSlot(slot)}
+                              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                            />
+                            <span className="text-sm font-bold text-slate-900">{slot}</span>
+                          </div>
+                          <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            Mutual Overlap
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <p className="text-xs text-slate-500 italic mb-2">
+                        No direct mutual slot overlap found in profile default. Choose from available peer practice slots:
+                      </p>
+                      {(selectedPeerForRequest?.peer_profile?.availability || selectedAvailability).map((slot: string) => (
+                        <label
+                          key={slot}
+                          className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
+                            selectedScheduledSlot === slot
+                              ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                              : 'border-slate-200 hover:border-slate-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="scheduled_slot"
+                              value={slot}
+                              checked={selectedScheduledSlot === slot}
+                              onChange={() => setSelectedScheduledSlot(slot)}
+                              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                            />
+                            <span className="text-sm font-bold text-slate-900">{slot}</span>
+                          </div>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                            Peer Slot
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-slate-100 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleScheduleMockInterview}
+                      disabled={!selectedScheduledSlot || isProcessingInteraction}
+                      className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessingInteraction ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Scheduling...
+                        </>
+                      ) : (
+                        'Schedule Mock Interview'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4C: FINAL MVP STATE - MOCK INTERVIEW SCHEDULED */}
+            {interactionStatus === 'SCHEDULED' && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-8 space-y-6 shadow-sm text-center sm:text-left">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 border-b border-emerald-200 pb-6">
+                  <div className="w-14 h-14 bg-emerald-600 text-white rounded-full flex items-center justify-center text-2xl font-bold shadow-md shrink-0">
+                    ✓
+                  </div>
+                  <div className="space-y-1">
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-600 text-white uppercase tracking-wider mb-1">
+                      Final MVP State
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight">
+                      Mock interview scheduled
+                    </h2>
+                    <p className="text-sm text-emerald-800 leading-relaxed">
+                      You are all set! Your practice mock interview session has been confirmed with your peer.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-emerald-100 rounded-xl p-6 space-y-4 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Confirmed Session Summary
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <span className="text-slate-400 block mb-0.5">Matched Peer:</span>
+                      <span className="font-bold text-slate-900 text-sm">
+                        {selectedPeerForRequest?.peer_profile?.full_name}
+                      </span>
+                      <span className="text-slate-500 block text-[11px]">
+                        {selectedPeerForRequest?.peer_profile?.seniority_level} {selectedPeerForRequest?.peer_profile?.target_role}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <span className="text-slate-400 block mb-0.5">Scheduled Slot:</span>
+                      <span className="font-bold text-indigo-700 text-sm">
+                        {selectedScheduledSlot}
+                      </span>
+                      <span className="text-slate-500 block text-[11px]">
+                        Format: {interviewType}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <span className="text-slate-400 block mb-0.5">Candidate Role:</span>
+                      <span className="font-semibold text-slate-800">
+                        {targetRole === 'Other' ? customRole : targetRole} ({seniorityLevel})
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <span className="text-slate-400 block mb-0.5">Database Interaction ID:</span>
+                      <span className="font-mono text-[11px] text-slate-700 font-semibold">
+                        {interactionRecordId || 'Saved in Supabase peer_interactions'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentStep(1);
+                      setInteractionStatus('REQUESTED');
+                      setSelectedPeerForRequest(null);
+                    }}
+                    className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    ← Practice Another Interview
+                  </button>
+
+                  <span className="text-xs text-emerald-800 font-semibold">
+                    Core MVP Flow Complete. Session Ready.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(3)}
+                className="text-xs text-slate-500 hover:text-slate-800 font-medium underline cursor-pointer"
+              >
+                ← Back to Top 3 Matches
+              </button>
+            </div>
           </div>
         )}
       </div>
