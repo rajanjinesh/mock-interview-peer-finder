@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { findAndRankPeers, MatchSystemResult, PeerMatch } from '@/lib/matchingSystem';
 
 const ROLE_OPTIONS = [
   'Product Manager',
@@ -154,6 +155,7 @@ export default function MockInterviewPeerFinderApp() {
 
   const [isScreen2Complete, setIsScreen2Complete] = useState<boolean>(false);
   const [completedRecord, setCompletedRecord] = useState<any | null>(null);
+  const [matchSystemResult, setMatchSystemResult] = useState<MatchSystemResult | null>(null);
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
@@ -315,6 +317,17 @@ export default function MockInterviewPeerFinderApp() {
 
       setCompletedRecord(recordData);
       setIsScreen2Complete(true);
+
+      // Invoke Matching System (WHO)
+      const matchingRes = await findAndRankPeers({
+        target_role: finalRole,
+        seniority_level: seniorityLevel,
+        interview_type: interviewType,
+        domain_skills: selectedSkills,
+        availability: selectedAvailability,
+      });
+
+      setMatchSystemResult(matchingRes);
       setCurrentStep(3);
     } catch (err: any) {
       console.error('Error saving availability:', err);
@@ -883,125 +896,187 @@ export default function MockInterviewPeerFinderApp() {
               </div>
             )}
 
-            <div className="space-y-6">
-              {displayedMatches.map((match) => (
-                <div
-                  key={match.id}
-                  className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-5"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                          #{match.rank} Match
-                        </span>
-                        <span className="text-xs font-semibold text-slate-400">
-                          {match.peer_profile.seniority_level} {match.peer_profile.target_role}
-                        </span>
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900">
-                        {match.peer_profile.full_name}
-                      </h3>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-xs text-slate-400 block font-medium">Match Strength</span>
-                        <span className="text-lg font-extrabold text-emerald-600">
-                          {match.match_score}%
-                        </span>
-                      </div>
-                      <div className="w-12 bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-2.5 rounded-full"
-                          style={{ width: `${match.match_score}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Common Availability:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {match.common_availability.map((slot) => (
-                        <span
-                          key={slot}
-                          className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-white text-slate-800 border border-slate-200 shadow-2xs"
-                        >
-                          {slot}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 space-y-4">
-                    <div className="flex items-center gap-2 border-b border-indigo-100 pb-2.5">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
-                        AI Match Reasoning & Analysis
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                        Why this person is suitable:
-                      </h4>
-                      <p className="text-xs text-slate-700 leading-relaxed font-normal">
-                        {match.ai_explanation.why_suitable}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                      <div className="bg-white border border-emerald-100 rounded-lg p-3">
-                        <h5 className="text-xs font-bold text-emerald-800 flex items-center gap-1 mb-1.5">
-                          <span>✓</span> Key Strengths:
-                        </h5>
-                        <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                          {match.ai_explanation.key_strengths.map((str, idx) => (
-                            <li key={idx}>{str}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="bg-white border border-amber-100 rounded-lg p-3">
-                        <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1 mb-1.5">
-                          <span>!</span> Trade-offs & Gaps:
-                        </h5>
-                        <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                          {match.ai_explanation.trade_offs_gaps.map((gap, idx) => (
-                            <li key={idx}>{gap}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">
-                      Format: {match.peer_profile.interview_type}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRequestPeer(match.id)}
-                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-xs cursor-pointer ${
-                        requestedPeerId === match.id
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                      }`}
-                    >
-                      {requestedPeerId === match.id ? '✓ Requested' : 'Request This Peer'}
-                    </button>
-                  </div>
+            {/* NO MATCH STATE CARD */}
+            {matchSystemResult && matchSystemResult.status === 'NO_MATCH' ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center space-y-4">
+                <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+                  !
                 </div>
-              ))}
-            </div>
+                <div>
+                  <h3 className="text-xl font-bold text-amber-900">
+                    No Direct Peer Matches Found
+                  </h3>
+                  <p className="mt-2 text-sm text-amber-800 max-w-lg mx-auto leading-relaxed">
+                    No active peers currently match both your target role (<span className="font-semibold">{targetRole === 'Other' ? customRole : targetRole}</span>) and interview type (<span className="font-semibold">{interviewType}</span>).
+                  </p>
+                </div>
+                <div className="pt-2 flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Adjust Target Role / Interview Format
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="px-5 py-2.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Adjust Availability
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* DYNAMIC TOP MATCH CARDS LIST */
+              <div className="space-y-6">
+                {(matchSystemResult && matchSystemResult.matches.length > 0
+                  ? matchSystemResult.matches
+                  : displayedMatches
+                ).slice(0, matchCountView).map((match: any) => (
+                  <div
+                    key={match.id}
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-5"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            #{match.rank} Match
+                          </span>
+                          <span className="text-xs font-semibold text-slate-400">
+                            {match.peer_profile.seniority_level} {match.peer_profile.target_role}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">
+                          {match.peer_profile.full_name}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-xs text-slate-400 block font-medium">Match Strength</span>
+                          <span className="text-lg font-extrabold text-emerald-600">
+                            {match.match_score}%
+                          </span>
+                        </div>
+                        <div className="w-12 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-2.5 rounded-full"
+                            style={{ width: `${match.match_score}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Common Availability:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {match.common_availability && match.common_availability.length > 0 ? (
+                          match.common_availability.map((slot: string) => (
+                            <span
+                              key={slot}
+                              className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-white text-slate-800 border border-slate-200 shadow-2xs"
+                            >
+                              {slot}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400 font-italic">No overlapping slot</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Structured Factors Breakdown */}
+                    {match.matching_factors && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1 text-slate-700">
+                        <span className="font-bold text-slate-900 block mb-1">Structured Match Factors (Matching System):</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                          <div><span className="text-slate-400">Target Role:</span> <span className="font-semibold text-emerald-700">✓ Exact (25 pts)</span></div>
+                          <div><span className="text-slate-400">Interview Type:</span> <span className="font-semibold text-emerald-700">✓ Exact (25 pts)</span></div>
+                          <div><span className="text-slate-400">Seniority:</span> <span className="font-semibold text-slate-800">{match.matching_factors.seniority_match_type === 'exact' ? '✓ Exact (20 pts)' : match.matching_factors.seniority_match_type === 'adjacent' ? '✓ Adjacent (10 pts)' : 'Different (0 pts)'}</span></div>
+                          <div><span className="text-slate-400">Skills Overlap:</span> <span className="font-semibold text-slate-800">{match.matching_factors.common_skills.length} matching</span></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI Explanation Area (Placeholder for Gemini AI in PROMPT 6) */}
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 space-y-4">
+                      <div className="flex items-center gap-2 border-b border-indigo-100 pb-2.5">
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                          AI Match Reasoning & Analysis (Gemini API)
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                          Why this person is suitable:
+                        </h4>
+                        <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                          {match.ai_explanation?.why_suitable ||
+                            `${match.peer_profile.full_name} matches your target role (${match.peer_profile.target_role}) and interview format (${match.peer_profile.interview_type}). Detailed natural-language match explanation will be generated by Gemini API.`}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div className="bg-white border border-emerald-100 rounded-lg p-3">
+                          <h5 className="text-xs font-bold text-emerald-800 flex items-center gap-1 mb-1.5">
+                            <span>✓</span> Key Strengths:
+                          </h5>
+                          <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                            {(match.ai_explanation?.key_strengths || [
+                              `Direct role alignment: ${match.peer_profile.target_role}`,
+                              `Exact format match: ${match.peer_profile.interview_type}`,
+                              `Seniority level: ${match.peer_profile.seniority_level}`,
+                            ]).map((str: string, idx: number) => (
+                              <li key={idx}>{str}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="bg-white border border-amber-100 rounded-lg p-3">
+                          <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1 mb-1.5">
+                            <span>!</span> Trade-offs & Gaps:
+                          </h5>
+                          <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                            {(match.ai_explanation?.trade_offs_gaps || [
+                              `Peer availability slots: ${match.peer_profile.availability?.join(', ')}`,
+                            ]).map((gap: string, idx: number) => (
+                              <li key={idx}>{gap}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <span className="text-xs text-slate-400">
+                        Format: {match.peer_profile.interview_type}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRequestPeer(match.id)}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-xs cursor-pointer ${
+                          requestedPeerId === match.id
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        }`}
+                      >
+                        {requestedPeerId === match.id ? '✓ Requested' : 'Request This Peer'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
               <button
