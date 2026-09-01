@@ -35,16 +35,6 @@ const SUGGESTED_SKILLS = [
   'User Growth',
   'Product Strategy',
   'B2B SaaS',
-  'Roadmapping',
-  'Spark',
-  'ETL Pipelines',
-  'Data Warehousing',
-  'Algorithms',
-  'Distributed Systems',
-  'Java',
-  'People Management',
-  'Org Design',
-  'Conflict Resolution',
 ];
 
 const TIME_SLOT_OPTIONS = [
@@ -490,58 +480,60 @@ export default function MockInterviewPeerFinderApp() {
   const displayedMatches = MOCK_MATCH_DATA.slice(0, matchCountView);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-3xl mx-auto bg-white shadow-sm border border-slate-200 rounded-xl p-6 sm:p-10">
+    <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="max-w-4xl mx-auto bg-white shadow-sm border border-slate-200 rounded-2xl p-6 sm:p-10 space-y-8">
         
-        <div className="border-b border-slate-200 pb-6 mb-8">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span
-                onClick={() => setCurrentStep(1)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
-                  currentStep === 1
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                }`}
-              >
-                Step 1 of 4 — What are you preparing for?
-              </span>
-              <span className="text-slate-300">→</span>
-              <span
-                onClick={() => setCurrentStep(2)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
-                  currentStep === 2
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                }`}
-              >
-                Step 2 of 4 — When are you available?
-              </span>
-              <span className="text-slate-300">→</span>
-              <span
-                onClick={() => setCurrentStep(3)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
-                  currentStep === 3
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                }`}
-              >
-                Step 3 of 4 — Your Best Matches
-              </span>
-              <span className="text-slate-300">→</span>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                  currentStep === 4
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-slate-100 text-slate-400 border-slate-200'
-                }`}
-              >
-                Step 4 of 4 — Request & Schedule
-              </span>
-            </div>
+        <div className="border-b border-slate-200 pb-6">
+          {/* COMPACT 4-STEP VISUAL INDICATOR AT THE TOP (CHANGE 6) */}
+          <div className="flex items-center justify-between overflow-x-auto pb-4 mb-6 text-xs font-semibold gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className={`px-3 py-1.5 rounded-lg border whitespace-nowrap cursor-pointer transition-colors ${
+                currentStep === 1
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs font-bold'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              Step 1: Profile
+            </button>
+            <span className="text-slate-300 font-bold shrink-0">→</span>
+            <button
+              type="button"
+              onClick={() => setCurrentStep(2)}
+              className={`px-3 py-1.5 rounded-lg border whitespace-nowrap cursor-pointer transition-colors ${
+                currentStep === 2
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs font-bold'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              Step 2: Availability
+            </button>
+            <span className="text-slate-300 font-bold shrink-0">→</span>
+            <button
+              type="button"
+              onClick={() => setCurrentStep(3)}
+              className={`px-3 py-1.5 rounded-lg border whitespace-nowrap cursor-pointer transition-colors ${
+                currentStep === 3
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs font-bold'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              Step 3: Top 3 Matches
+            </button>
+            <span className="text-slate-300 font-bold shrink-0">→</span>
+            <span
+              className={`px-3 py-1.5 rounded-lg border whitespace-nowrap ${
+                currentStep === 4
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs font-bold'
+                  : 'bg-slate-50 text-slate-400 border-slate-200'
+              }`}
+            >
+              Step 4: Request & Schedule
+            </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             {currentStep === 1 && 'What are you preparing for?'}
             {currentStep === 2 && 'When are you available?'}
             {currentStep === 3 && 'Your Best Matches'}
@@ -737,12 +729,14 @@ export default function MockInterviewPeerFinderApp() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-              <p className="text-xs text-slate-400">* Required fields</p>
+            <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Step 1 of 4
+              </span>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmitting ? 'Saving Profile...' : 'Continue to Choose My Mock Interview Time Slots →'}
               </button>
@@ -942,19 +936,24 @@ export default function MockInterviewPeerFinderApp() {
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(1)}
-                    className="text-xs text-slate-500 hover:text-slate-800 font-medium underline cursor-pointer"
-                  >
-                    ← Back to Profile Intake
-                  </button>
+                <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="text-xs text-slate-500 hover:text-slate-800 font-medium underline cursor-pointer"
+                    >
+                      ← Back to Requirements
+                    </button>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Step 2 of 4
+                    </span>
+                  </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isSubmitting ? (
                       <>
@@ -962,10 +961,10 @@ export default function MockInterviewPeerFinderApp() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
-                        Saving Preferences...
+                        Searching Matches...
                       </>
                     ) : (
-                      'Find Suitable Matches'
+                      'Find My Matches →'
                     )}
                   </button>
                 </div>
@@ -1106,13 +1105,13 @@ export default function MockInterviewPeerFinderApp() {
                 ).slice(0, matchCountView).map((match: any) => (
                   <div
                     key={match.id}
-                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-4"
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-5"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                            #{match.rank} Match
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wider">
+                            Top {match.rank}
                           </span>
                           <span className="text-xs font-semibold text-slate-400">
                             {match.peer_profile.seniority_level} {match.peer_profile.target_role}
@@ -1122,20 +1121,28 @@ export default function MockInterviewPeerFinderApp() {
                           <h3 className="text-xl font-bold text-slate-900">
                             {match.peer_profile.full_name}
                           </h3>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             <button
                               type="button"
+                              title="View LinkedIn profile"
                               onClick={() => setActiveLinkedInModalPeer(match.peer_profile)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
                             >
-                              <span className="font-extrabold text-blue-800">in</span> LinkedIn
+                              <svg className="w-3.5 h-3.5 text-blue-700 fill-current" viewBox="0 0 24 24">
+                                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                              </svg>
+                              LinkedIn
                             </button>
                             <button
                               type="button"
+                              title="View resume"
                               onClick={() => setActiveResumeModalPeer(match.peer_profile)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
                             >
-                              <span>📄</span> Resume
+                              <svg className="w-3.5 h-3.5 text-slate-600 fill-none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Resume
                             </button>
                           </div>
                         </div>
@@ -1157,18 +1164,19 @@ export default function MockInterviewPeerFinderApp() {
                       </div>
                     </div>
 
-                    <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <span className="font-bold text-indigo-900 flex items-center gap-1.5 shrink-0">
-                        <span>🤝</span> Mutual Value Exchange:
+                    <div className="p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs space-y-2">
+                      <span className="font-extrabold text-indigo-950 uppercase tracking-wider block text-[11px]">
+                        Mutual Benefit
                       </span>
-                      <div className="flex flex-wrap items-center gap-2 text-slate-700 font-medium">
-                        <span className="bg-white px-2.5 py-1 rounded-md border border-indigo-100 text-[11px]">
-                          <strong className="text-indigo-700">You bring:</strong> {selectedSkills.slice(0, 2).join(' & ') || targetRole}
-                        </span>
-                        <span className="text-slate-300 hidden sm:inline">•</span>
-                        <span className="bg-white px-2.5 py-1 rounded-md border border-indigo-100 text-[11px]">
-                          <strong className="text-indigo-700">Peer brings:</strong> {match.peer_profile.domain_skills?.slice(0, 2).join(' & ') || match.peer_profile.interview_type}
-                        </span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-slate-700 font-medium">
+                        <div className="bg-white px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1.5 flex-1">
+                          <strong className="text-indigo-700 shrink-0">You bring:</strong>
+                          <span className="truncate">{selectedSkills.slice(0, 2).join(' & ') || targetRole}</span>
+                        </div>
+                        <div className="bg-white px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1.5 flex-1">
+                          <strong className="text-indigo-700 shrink-0">Peer brings:</strong>
+                          <span className="truncate">{match.peer_profile.domain_skills?.slice(0, 2).join(' & ') || match.peer_profile.interview_type}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -1219,7 +1227,7 @@ export default function MockInterviewPeerFinderApp() {
                               ✓ AI Verified
                             </span>
                           )}
-                          <span className="text-xs font-bold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                          <span className="text-xs font-bold text-indigo-700 bg-white px-3 py-1 rounded-md border border-indigo-200 shadow-2xs">
                             {expandedAiCardMap[match.id] ? 'Hide Breakdown ▲' : 'Show Breakdown ▼'}
                           </span>
                         </div>
@@ -1287,7 +1295,7 @@ export default function MockInterviewPeerFinderApp() {
               </div>
             )}
 
-            <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
+            <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
@@ -1296,11 +1304,10 @@ export default function MockInterviewPeerFinderApp() {
                 ← Back to Availability
               </button>
 
-              <span className="text-xs font-medium text-slate-400">
-                Screen 3 Complete. Top 3 Matches displayed.
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Step 3 of 4
               </span>
             </div>
-
           </div>
         )}
 
@@ -1376,25 +1383,25 @@ export default function MockInterviewPeerFinderApp() {
                   </div>
                 </div>
 
-                {/* CHANGE 11: Peer Response Simulation */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-indigo-100">
-                  <span className="text-xs text-indigo-700 font-bold">
-                    ⚡ Peer Response Simulation:
+                {/* CHANGE 12: Peer Response Simulation */}
+                <div className="pt-4 border-t border-indigo-100 space-y-3">
+                  <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider block">
+                    Peer Response Simulation
                   </span>
-                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
                     <button
                       type="button"
                       onClick={handleSimulatePeerApproval}
                       disabled={isProcessingInteraction}
-                      className="flex-1 sm:flex-initial px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      {isProcessingInteraction ? 'Processing...' : 'Peer Accepts Your Request →'}
+                      {isProcessingInteraction ? 'Processing...' : 'Peer Accepts Your Request ✓'}
                     </button>
                     <button
                       type="button"
                       onClick={handleSimulatePeerDecline}
                       disabled={isProcessingInteraction}
-                      className="flex-1 sm:flex-initial px-5 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold rounded-xl border border-amber-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-900 text-xs font-bold rounded-xl border border-rose-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       Peer Declines Your Request ✕
                     </button>
@@ -1635,7 +1642,7 @@ export default function MockInterviewPeerFinderApp() {
               </div>
             )}
 
-            <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
+            <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
@@ -1643,6 +1650,10 @@ export default function MockInterviewPeerFinderApp() {
               >
                 ← Back to Top 3 Matches
               </button>
+
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Step 4 of 4
+              </span>
             </div>
           </div>
         )}
