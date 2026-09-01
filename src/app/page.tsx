@@ -173,13 +173,17 @@ export default function MockInterviewPeerFinderApp() {
     }));
   };
 
+  const [showSkillLimitNotice, setShowSkillLimitNotice] = useState<boolean>(false);
+
   const toggleSkill = (skill: string) => {
+    setShowSkillLimitNotice(false);
     setSelectedSkills((prev) => {
       if (prev.includes(skill)) {
         return prev.filter((s) => s !== skill);
       }
       if (prev.length >= 2) {
-        return [prev[1], skill];
+        setShowSkillLimitNotice(true);
+        return prev;
       }
       return [...prev, skill];
     });
@@ -187,14 +191,14 @@ export default function MockInterviewPeerFinderApp() {
 
   const handleAddCustomSkill = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSkillLimitNotice(false);
     const trimmed = customSkillInput.trim();
     if (trimmed && !selectedSkills.includes(trimmed)) {
-      setSelectedSkills((prev) => {
-        if (prev.length >= 2) {
-          return [prev[1], trimmed];
-        }
-        return [...prev, trimmed];
-      });
+      if (selectedSkills.length >= 2) {
+        setShowSkillLimitNotice(true);
+        return;
+      }
+      setSelectedSkills((prev) => [...prev, trimmed]);
       setCustomSkillInput('');
     }
   };
@@ -663,6 +667,12 @@ export default function MockInterviewPeerFinderApp() {
               <p className="text-xs text-slate-500 mb-2">
                 Select up to 2 key skills that matter most for your mock interview practice.
               </p>
+
+              {showSkillLimitNotice && (
+                <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-900 flex items-center gap-2">
+                  <span>⚠️</span> Maximum of 2 skills can be selected. Remove a skill to choose a different one.
+                </div>
+              )}
 
               {selectedSkills.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
