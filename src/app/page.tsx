@@ -825,11 +825,11 @@ export default function MockInterviewPeerFinderApp() {
             ) : (
               <form onSubmit={handleFindSuitableMatches} className="space-y-10">
                 <div>
-                  <label className="block text-base sm:text-lg font-bold text-slate-900 mb-1.5">
-                    Preferred Practice Time Slots <span className="text-red-500">*</span>
+                  <label className="block text-base sm:text-lg font-extrabold text-slate-900 mb-1.5">
+                    Your Practice Time Availability <span className="text-red-500">*</span>
                   </label>
-                  <p className="text-sm text-slate-500 mb-4">
-                    Select all days and time windows when you are free for mock interview sessions.
+                  <p className="text-sm sm:text-base text-slate-600 mb-5">
+                    Select the days and time windows when you are free for your mock interview session.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
