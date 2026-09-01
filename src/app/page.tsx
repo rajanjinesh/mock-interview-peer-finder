@@ -174,36 +174,31 @@ export default function MockInterviewPeerFinderApp() {
   };
 
   const [showSkillLimitNotice, setShowSkillLimitNotice] = useState<boolean>(false);
+  const [skillSelectChoice, setSkillSelectChoice] = useState<string>('');
 
-  const toggleSkill = (skill: string) => {
+  const handleAddSkillFromChoice = (skillToAdd: string) => {
     setShowSkillLimitNotice(false);
-    setSelectedSkills((prev) => {
-      if (prev.includes(skill)) {
-        return prev.filter((s) => s !== skill);
-      }
-      if (prev.length >= 2) {
-        setShowSkillLimitNotice(true);
-        return prev;
-      }
-      return [...prev, skill];
-    });
-  };
+    const trimmed = skillToAdd.trim();
+    if (!trimmed) return;
 
-  const handleAddCustomSkill = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowSkillLimitNotice(false);
-    const trimmed = customSkillInput.trim();
-    if (trimmed && !selectedSkills.includes(trimmed)) {
-      if (selectedSkills.length >= 2) {
-        setShowSkillLimitNotice(true);
-        return;
-      }
-      setSelectedSkills((prev) => [...prev, trimmed]);
+    if (selectedSkills.includes(trimmed)) {
+      setSkillSelectChoice('');
       setCustomSkillInput('');
+      return;
     }
+
+    if (selectedSkills.length >= 2) {
+      setShowSkillLimitNotice(true);
+      return;
+    }
+
+    setSelectedSkills((prev) => [...prev, trimmed]);
+    setCustomSkillInput('');
+    setSkillSelectChoice('');
   };
 
   const removeSkill = (skillToRemove: string) => {
+    setShowSkillLimitNotice(false);
     setSelectedSkills((prev) => prev.filter((s) => s !== skillToRemove));
   };
 
@@ -665,30 +660,32 @@ export default function MockInterviewPeerFinderApp() {
                 4. Domain / Key Skills <span className="text-red-500">*</span>
               </label>
               <p className="text-sm text-slate-500 mb-3">
-                Select up to 2 key skills that matter most for your mock interview practice.
+                Select up to 2 key skills that matter most for your mock interview.
               </p>
 
               {showSkillLimitNotice && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm font-semibold text-amber-900 flex items-center gap-2">
+                <div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-sm font-semibold text-amber-900 flex items-center gap-2">
                   <span>⚠️</span> Maximum of 2 skills can be selected. Remove a skill to choose a different one.
                 </div>
               )}
 
+              {/* SELECTED SKILLS TAGS */}
               {selectedSkills.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-2.5 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-sm font-bold text-slate-600 w-full mb-1">
+                <div className="mb-4 flex flex-wrap gap-2.5 p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl items-center">
+                  <span className="text-sm font-bold text-indigo-950 w-full mb-0.5">
                     Selected Skills ({selectedSkills.length}/2):
                   </span>
                   {selectedSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold bg-indigo-100 text-indigo-900 border border-indigo-200"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-white text-indigo-900 border border-indigo-200 shadow-2xs"
                     >
                       {skill}
                       <button
                         type="button"
                         onClick={() => removeSkill(skill)}
-                        className="text-indigo-600 hover:text-indigo-900 font-extrabold focus:outline-none cursor-pointer text-base"
+                        className="text-indigo-600 hover:text-indigo-950 font-extrabold focus:outline-none cursor-pointer text-base ml-1"
+                        title={`Remove ${skill}`}
                       >
                         ×
                       </button>
@@ -697,42 +694,53 @@ export default function MockInterviewPeerFinderApp() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2.5 mb-4">
-                {SUGGESTED_SKILLS.map((skill) => {
-                  const isSelected = selectedSkills.includes(skill);
-                  return (
-                    <button
-                      key={skill}
-                      type="button"
-                      onClick={() => toggleSkill(skill)}
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-bold'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
+              {/* CLEAN USER-DRIVEN ADD SKILL INTERACTION */}
+              {selectedSkills.length < 2 && (
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                      value={skillSelectChoice}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          handleAddSkillFromChoice(val);
+                        }
+                      }}
+                      className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm sm:text-base text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium cursor-pointer"
                     >
-                      {isSelected ? `✓ ${skill}` : `+ ${skill}`}
-                    </button>
-                  );
-                })}
-              </div>
+                      <option value="">-- Select from popular skill options --</option>
+                      {SUGGESTED_SKILLS.filter((s) => !selectedSkills.includes(s)).map((skill) => (
+                        <option key={skill} value={skill}>
+                          + {skill}
+                        </option>
+                      ))}
+                    </select>
 
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  placeholder="Add custom skill..."
-                  value={customSkillInput}
-                  onChange={(e) => setCustomSkillInput(e.target.value)}
-                  className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm sm:text-base text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomSkill}
-                  className="px-5 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  Add Skill
-                </button>
-              </div>
+                    <div className="flex flex-1 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Or enter custom skill..."
+                        value={customSkillInput}
+                        onChange={(e) => setCustomSkillInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSkillFromChoice(customSkillInput);
+                          }
+                        }}
+                        className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm sm:text-base text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddSkillFromChoice(customSkillInput)}
+                        className="px-6 py-3.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+                      >
+                        Add Skill
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {errorsStep1.skills && (
                 <p className="mt-2 text-sm text-red-600 font-semibold">{errorsStep1.skills}</p>
