@@ -13,7 +13,12 @@ const ROLE_OPTIONS = [
   'Other',
 ];
 
-const SENIORITY_OPTIONS = ['Junior', 'Mid-Level', 'Senior', 'Lead'];
+const SENIORITY_OPTIONS = [
+  { label: 'Junior (0–2 years)', value: 'Junior' },
+  { label: 'Mid-Level (3–5 years)', value: 'Mid-Level' },
+  { label: 'Senior (6–10 years)', value: 'Senior' },
+  { label: 'Leadership (10+ years)', value: 'Lead' },
+];
 
 const INTERVIEW_TYPE_OPTIONS = [
   'Product Design',
@@ -166,17 +171,40 @@ export default function MockInterviewPeerFinderApp() {
   const [isProcessingInteraction, setIsProcessingInteraction] = useState<boolean>(false);
   const [isNotificationSubscribed, setIsNotificationSubscribed] = useState<boolean>(false);
 
+  // UX Refinement States
+  const [activeLinkedInModalPeer, setActiveLinkedInModalPeer] = useState<any | null>(null);
+  const [activeResumeModalPeer, setActiveResumeModalPeer] = useState<any | null>(null);
+  const [expandedAiCardMap, setExpandedAiCardMap] = useState<Record<string, boolean>>({});
+
+  const toggleAiExplanationCollapse = (peerId: string) => {
+    setExpandedAiCardMap((prev) => ({
+      ...prev,
+      [peerId]: !prev[peerId],
+    }));
+  };
+
   const toggleSkill = (skill: string) => {
-    setSelectedSkills((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-    );
+    setSelectedSkills((prev) => {
+      if (prev.includes(skill)) {
+        return prev.filter((s) => s !== skill);
+      }
+      if (prev.length >= 2) {
+        return [prev[1], skill];
+      }
+      return [...prev, skill];
+    });
   };
 
   const handleAddCustomSkill = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = customSkillInput.trim();
     if (trimmed && !selectedSkills.includes(trimmed)) {
-      setSelectedSkills((prev) => [...prev, trimmed]);
+      setSelectedSkills((prev) => {
+        if (prev.length >= 2) {
+          return [prev[1], trimmed];
+        }
+        return [...prev, trimmed];
+      });
       setCustomSkillInput('');
     }
   };
@@ -467,7 +495,7 @@ export default function MockInterviewPeerFinderApp() {
         
         <div className="border-b border-slate-200 pb-6 mb-8">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span
                 onClick={() => setCurrentStep(1)}
                 className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
@@ -476,7 +504,7 @@ export default function MockInterviewPeerFinderApp() {
                     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                 }`}
               >
-                Step 1: Profile Intake
+                Step 1 of 4 — What are you preparing for?
               </span>
               <span className="text-slate-300">→</span>
               <span
@@ -487,7 +515,7 @@ export default function MockInterviewPeerFinderApp() {
                     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                 }`}
               >
-                Step 2: Availability
+                Step 2 of 4 — When are you available?
               </span>
               <span className="text-slate-300">→</span>
               <span
@@ -498,7 +526,7 @@ export default function MockInterviewPeerFinderApp() {
                     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                 }`}
               >
-                Step 3: Top 3 Matches
+                Step 3 of 4 — Your Best Matches
               </span>
               <span className="text-slate-300">→</span>
               <span
@@ -508,28 +536,24 @@ export default function MockInterviewPeerFinderApp() {
                     : 'bg-slate-100 text-slate-400 border-slate-200'
                 }`}
               >
-                Step 4: Request & Schedule
+                Step 4 of 4 — Request & Schedule
               </span>
             </div>
-
-            <span className="text-xs text-slate-400 font-mono hidden md:inline">
-              Mock Interview Peer Finder
-            </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {currentStep === 1 && 'Interview Requirements Intake'}
-            {currentStep === 2 && 'Set Your Practice Availability'}
-            {currentStep === 3 && 'Top Suitable Peer Matches'}
-            {currentStep === 4 && 'Request & Schedule Mock Interview'}
+            {currentStep === 1 && 'What are you preparing for?'}
+            {currentStep === 2 && 'When are you available?'}
+            {currentStep === 3 && 'Your Best Matches'}
+            {currentStep === 4 && 'Request & Schedule'}
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
             {currentStep === 1 &&
-              'Provide details of the interview you are preparing for. These criteria will be used to determine suitable peer matches.'}
+              'Tell us about the interview you want to practice.'}
             {currentStep === 2 &&
-              'Select the days and time slots when you are available for mock interview practice sessions.'}
+              'Select the time slots that work for you for your mock interview.'}
             {currentStep === 3 &&
-              'Below are the top suitable peers for your interview requirements. Review their match strength, common availability, and suitability explanations.'}
+              'Below are your top suitable peer matches. Review their suitability, profile highlights, and common practice availability.'}
             {currentStep === 4 &&
               'Request approval from your selected peer, view common available time slots, and schedule your mock interview session.'}
           </p>
@@ -586,20 +610,20 @@ export default function MockInterviewPeerFinderApp() {
                 Select your targeted experience level.
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {SENIORITY_OPTIONS.map((level) => {
-                  const isSelected = seniorityLevel === level;
+                {SENIORITY_OPTIONS.map((item) => {
+                  const isSelected = seniorityLevel === item.value;
                   return (
                     <button
-                      key={level}
+                      key={item.value}
                       type="button"
-                      onClick={() => setSeniorityLevel(level)}
-                      className={`py-2.5 px-4 rounded-lg text-sm font-medium border text-center transition-all cursor-pointer ${
+                      onClick={() => setSeniorityLevel(item.value)}
+                      className={`py-2.5 px-3 rounded-lg text-xs font-medium border text-center transition-all cursor-pointer ${
                         isSelected
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs font-semibold'
                           : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                       }`}
                     >
-                      {level}
+                      {item.label}
                     </button>
                   );
                 })}
@@ -645,13 +669,13 @@ export default function MockInterviewPeerFinderApp() {
                 4. Domain / Key Skills <span className="text-red-500">*</span>
               </label>
               <p className="text-xs text-slate-500 mb-2">
-                Select key domains or skills relevant to your interview.
+                Select up to 2 key skills that matter most for your mock interview practice.
               </p>
 
               {selectedSkills.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
                   <span className="text-xs font-semibold text-slate-500 w-full mb-1">
-                    Selected Skills ({selectedSkills.length}):
+                    Selected Skills ({selectedSkills.length}/2):
                   </span>
                   {selectedSkills.map((skill) => (
                     <span
@@ -720,7 +744,7 @@ export default function MockInterviewPeerFinderApp() {
                 disabled={isSubmitting}
                 className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {isSubmitting ? 'Saving Profile...' : 'Set My Availability →'}
+                {isSubmitting ? 'Saving Profile...' : 'Continue to Choose My Mock Interview Time Slots →'}
               </button>
             </div>
           </form>
@@ -1082,11 +1106,11 @@ export default function MockInterviewPeerFinderApp() {
                 ).slice(0, matchCountView).map((match: any) => (
                   <div
                     key={match.id}
-                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-5"
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
                             #{match.rank} Match
                           </span>
@@ -1094,9 +1118,27 @@ export default function MockInterviewPeerFinderApp() {
                             {match.peer_profile.seniority_level} {match.peer_profile.target_role}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900">
-                          {match.peer_profile.full_name}
-                        </h3>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h3 className="text-xl font-bold text-slate-900">
+                            {match.peer_profile.full_name}
+                          </h3>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setActiveLinkedInModalPeer(match.peer_profile)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                            >
+                              <span className="font-extrabold text-blue-800">in</span> LinkedIn
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveResumeModalPeer(match.peer_profile)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              <span>📄</span> Resume
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -1112,6 +1154,21 @@ export default function MockInterviewPeerFinderApp() {
                             style={{ width: `${match.match_score}%` }}
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="font-bold text-indigo-900 flex items-center gap-1.5 shrink-0">
+                        <span>🤝</span> Mutual Value Exchange:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2 text-slate-700 font-medium">
+                        <span className="bg-white px-2.5 py-1 rounded-md border border-indigo-100 text-[11px]">
+                          <strong className="text-indigo-700">You bring:</strong> {selectedSkills.slice(0, 2).join(' & ') || targetRole}
+                        </span>
+                        <span className="text-slate-300 hidden sm:inline">•</span>
+                        <span className="bg-white px-2.5 py-1 rounded-md border border-indigo-100 text-[11px]">
+                          <strong className="text-indigo-700">Peer brings:</strong> {match.peer_profile.domain_skills?.slice(0, 2).join(' & ') || match.peer_profile.interview_type}
+                        </span>
                       </div>
                     </div>
 
@@ -1138,90 +1195,79 @@ export default function MockInterviewPeerFinderApp() {
                       </div>
                     </div>
 
-                    {/* Structured Factors Breakdown */}
-                    {match.matching_factors && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1 text-slate-700">
-                        <span className="font-bold text-slate-900 block mb-1">Structured Match Factors (Matching System):</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                          <div><span className="text-slate-400">Target Role:</span> <span className="font-semibold text-emerald-700">✓ Exact (25 pts)</span></div>
-                          <div><span className="text-slate-400">Interview Type:</span> <span className="font-semibold text-emerald-700">✓ Exact (25 pts)</span></div>
-                          <div><span className="text-slate-400">Seniority:</span> <span className="font-semibold text-slate-800">{match.matching_factors.seniority_match_type === 'exact' ? '✓ Exact (20 pts)' : match.matching_factors.seniority_match_type === 'adjacent' ? '✓ Adjacent (10 pts)' : 'Different (0 pts)'}</span></div>
-                          <div><span className="text-slate-400">Skills Overlap:</span> <span className="font-semibold text-slate-800">{match.matching_factors.common_skills.length} matching</span></div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AI Explanation Area (Placeholder for Gemini AI in PROMPT 6) */}
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 space-y-4">
-                      <div className="flex items-center justify-between border-b border-indigo-100 pb-2.5">
+                    <div className="rounded-xl border border-indigo-100 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => toggleAiExplanationCollapse(match.id)}
+                        className="w-full p-4 bg-indigo-50 hover:bg-indigo-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
+                      >
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
-                          <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
-                            AI Match Reasoning (Gemini API)
+                          <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
+                            Why this peer fits your needs
                           </span>
                         </div>
-                        {isAiLoading && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700 animate-pulse">
-                            <svg className="animate-spin h-3 w-3 text-indigo-600" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Generating AI Explanation...
-                          </span>
-                        )}
-                        {!isAiLoading && match.ai_status === 'SUCCESS' && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            ✓ AI Verified
-                          </span>
-                        )}
-                        {!isAiLoading && match.ai_status === 'UNAVAILABLE' && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                            AI Offline (Match Valid)
-                          </span>
-                        )}
-                      </div>
 
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                          Why this person is suitable:
-                        </h4>
-                        <p className="text-xs text-slate-700 leading-relaxed font-normal">
-                          {match.ai_explanation?.why_suitable ||
-                            `${match.peer_profile.full_name} matches your target role (${match.peer_profile.target_role}) and interview format (${match.peer_profile.interview_type}). Detailed natural-language match explanation will be generated by Gemini API.`}
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                        <div className="bg-white border border-emerald-100 rounded-lg p-3">
-                          <h5 className="text-xs font-bold text-emerald-800 flex items-center gap-1 mb-1.5">
-                            <span>✓</span> Key Strengths:
-                          </h5>
-                          <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                            {(match.ai_explanation?.key_strengths || [
-                              `Direct role alignment: ${match.peer_profile.target_role}`,
-                              `Exact format match: ${match.peer_profile.interview_type}`,
-                              `Seniority level: ${match.peer_profile.seniority_level}`,
-                            ]).map((str: string, idx: number) => (
-                              <li key={idx}>{str}</li>
-                            ))}
-                          </ul>
+                        <div className="flex items-center gap-2">
+                          {isAiLoading && (
+                            <span className="text-[11px] font-semibold text-indigo-600 animate-pulse">Generating...</span>
+                          )}
+                          {!isAiLoading && match.ai_status === 'SUCCESS' && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              ✓ AI Verified
+                            </span>
+                          )}
+                          <span className="text-xs font-bold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                            {expandedAiCardMap[match.id] ? 'Hide Breakdown ▲' : 'Show Breakdown ▼'}
+                          </span>
                         </div>
+                      </button>
 
-                        <div className="bg-white border border-amber-100 rounded-lg p-3">
-                          <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1 mb-1.5">
-                            <span>!</span> Trade-offs & Gaps:
-                          </h5>
-                          <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                            {(match.ai_explanation?.trade_offs_gaps || [
-                              `Peer availability slots: ${match.peer_profile.availability?.join(', ')}`,
-                            ]).map((gap: string, idx: number) => (
-                              <li key={idx}>{gap}</li>
-                            ))}
-                          </ul>
+                      {expandedAiCardMap[match.id] && (
+                        <div className="bg-indigo-50/50 p-5 space-y-4 border-t border-indigo-100">
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                              Why this person is suitable:
+                            </h4>
+                            <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                              {match.ai_explanation?.why_suitable ||
+                                `${match.peer_profile.full_name} matches your target role (${match.peer_profile.target_role}) and interview format (${match.peer_profile.interview_type}).`}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                            <div className="bg-white border border-emerald-100 rounded-lg p-3">
+                              <h5 className="text-xs font-bold text-emerald-800 flex items-center gap-1 mb-1.5">
+                                <span>✓</span> Key Strengths:
+                              </h5>
+                              <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                                {(match.ai_explanation?.key_strengths || [
+                                  `Direct role alignment: ${match.peer_profile.target_role}`,
+                                  `Exact format match: ${match.peer_profile.interview_type}`,
+                                  `Seniority level: ${match.peer_profile.seniority_level}`,
+                                ]).map((str: string, idx: number) => (
+                                  <li key={idx}>{str}</li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div className="bg-white border border-amber-100 rounded-lg p-3">
+                              <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1 mb-1.5">
+                                <span>!</span> Trade-offs & Gaps:
+                              </h5>
+                              <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                                {(match.ai_explanation?.trade_offs_gaps || [
+                                  `Peer availability slots: ${match.peer_profile.availability?.join(', ')}`,
+                                ]).map((gap: string, idx: number) => (
+                                  <li key={idx}>{gap}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     <div className="pt-2 flex items-center justify-between">
@@ -1323,18 +1369,17 @@ export default function MockInterviewPeerFinderApp() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-700">
                     <div><span className="text-slate-400">Target Role:</span> <span className="font-semibold">{targetRole === 'Other' ? customRole : targetRole}</span></div>
                     <div><span className="text-slate-400">Interview Type:</span> <span className="font-semibold">{interviewType}</span></div>
                     <div><span className="text-slate-400">Seniority:</span> <span className="font-semibold">{seniorityLevel}</span></div>
-                    <div><span className="text-slate-400">Request Record ID:</span> <span className="font-mono text-[11px]">{interactionRecordId || 'Saved in Supabase'}</span></div>
                   </div>
                 </div>
 
-                {/* Simulation Trigger CTAs (Approval or Decline) */}
+                {/* CHANGE 11: Peer Response Simulation */}
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-indigo-100">
-                  <span className="text-xs text-indigo-700 font-medium">
-                    ⚡ Prototype Simulation Mode:
+                  <span className="text-xs text-indigo-700 font-bold">
+                    ⚡ Peer Response Simulation:
                   </span>
                   <div className="flex items-center gap-2.5 w-full sm:w-auto">
                     <button
@@ -1343,7 +1388,7 @@ export default function MockInterviewPeerFinderApp() {
                       disabled={isProcessingInteraction}
                       className="flex-1 sm:flex-initial px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      {isProcessingInteraction ? 'Processing...' : 'Simulate Peer Approval →'}
+                      {isProcessingInteraction ? 'Processing...' : 'Peer Accepts Your Request →'}
                     </button>
                     <button
                       type="button"
@@ -1351,7 +1396,7 @@ export default function MockInterviewPeerFinderApp() {
                       disabled={isProcessingInteraction}
                       className="flex-1 sm:flex-initial px-5 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold rounded-xl border border-amber-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      Simulate Peer Decline ✕
+                      Peer Declines Your Request ✕
                     </button>
                   </div>
                 </div>
@@ -1561,17 +1606,10 @@ export default function MockInterviewPeerFinderApp() {
                       </span>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-lg">
+                    <div className="p-3 bg-slate-50 rounded-lg sm:col-span-2">
                       <span className="text-slate-400 block mb-0.5">Candidate Role:</span>
                       <span className="font-semibold text-slate-800">
                         {targetRole === 'Other' ? customRole : targetRole} ({seniorityLevel})
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-400 block mb-0.5">Database Interaction ID:</span>
-                      <span className="font-mono text-[11px] text-slate-700 font-semibold">
-                        {interactionRecordId || 'Saved in Supabase peer_interactions'}
                       </span>
                     </div>
                   </div>
@@ -1609,6 +1647,146 @@ export default function MockInterviewPeerFinderApp() {
           </div>
         )}
       </div>
+
+      {/* LINKEDIN PROTOTYPE MODAL (CHANGE 1) */}
+      {activeLinkedInModalPeer && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-blue-600 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
+                  in
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    {activeLinkedInModalPeer.full_name}
+                  </h3>
+                  <span className="text-xs text-blue-600 font-medium">LinkedIn Member Profile</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLinkedInModalPeer(null)}
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700">
+              <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl space-y-1">
+                <span className="font-bold text-blue-900 block text-sm">
+                  {activeLinkedInModalPeer.seniority_level} {activeLinkedInModalPeer.target_role}
+                </span>
+                <p className="text-slate-600">
+                  Experienced practitioner preparing for {activeLinkedInModalPeer.interview_type} mock interviews.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
+                  Core Skills & Domain Expertise
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeLinkedInModalPeer.domain_skills?.map((skill: string) => (
+                    <span key={skill} className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-md font-medium">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-slate-500 italic text-[11px]">
+                ℹ️ Prototype Content Notice: This is a sample LinkedIn profile representation for prototype demonstration purposes. No external network request was performed.
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setActiveLinkedInModalPeer(null)}
+                className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 cursor-pointer"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RESUME PROTOTYPE MODAL (CHANGE 1) */}
+      {activeResumeModalPeer && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-slate-800 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
+                  📄
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    {activeResumeModalPeer.full_name} — Candidate Resume Summary
+                  </h3>
+                  <span className="text-xs text-slate-500 font-medium">Verified Peer Profile</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveResumeModalPeer(null)}
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {activeResumeModalPeer.seniority_level} {activeResumeModalPeer.target_role}
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
+                    Interview Ready
+                  </span>
+                </div>
+                <p className="text-slate-600 leading-relaxed">
+                  Proven background in product development, technical architecture, and cross-functional leadership. Preparing for high-stakes {activeResumeModalPeer.interview_type} interviews.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
+                  Highlighted Domain Focus
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-slate-400 block text-[10px]">Primary Domain</span>
+                    <span className="font-semibold text-slate-800">{activeResumeModalPeer.domain_skills?.[0] || 'Product Strategy'}</span>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-slate-400 block text-[10px]">Interview Format</span>
+                    <span className="font-semibold text-slate-800">{activeResumeModalPeer.interview_type}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-amber-900 text-[11px] italic">
+                ℹ️ Prototype Content Notice: This is a sample resume representation for prototype demonstration purposes.
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setActiveResumeModalPeer(null)}
+                className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 cursor-pointer"
+              >
+                Close Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
