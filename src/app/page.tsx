@@ -1353,16 +1353,16 @@ export default function MockInterviewPeerFinderApp() {
                 </div>
 
                 {/* Peer Response Simulation */}
-                <div className="pt-5 border-t border-indigo-100 space-y-4">
-                  <span className="text-sm font-extrabold text-indigo-950 uppercase tracking-wider block">
+                <div className="pt-6 border-t border-indigo-100/80 space-y-4">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-indigo-950 uppercase tracking-wider block">
                     Peer Response Simulation
-                  </span>
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                  </h4>
+                  <div className="flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4">
                     <button
                       type="button"
                       onClick={handleSimulatePeerApproval}
                       disabled={isProcessingInteraction}
-                      className="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       {isProcessingInteraction ? 'Processing...' : 'Peer Accepts Your Request ✓'}
                     </button>
@@ -1370,7 +1370,7 @@ export default function MockInterviewPeerFinderApp() {
                       type="button"
                       onClick={handleSimulatePeerDecline}
                       disabled={isProcessingInteraction}
-                      className="w-full sm:w-auto px-6 py-3.5 bg-rose-100 hover:bg-rose-200 text-rose-950 text-sm sm:text-base font-bold rounded-xl border border-rose-300 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-6 py-3.5 bg-rose-100 hover:bg-rose-200 text-rose-950 text-sm sm:text-base font-bold rounded-xl border border-rose-300 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       Peer Declines Your Request ✕
                     </button>
