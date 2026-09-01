@@ -997,46 +997,18 @@ export default function MockInterviewPeerFinderApp() {
               </div>
             </div>
 
-            {requestedPeerId && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                    ✓
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-emerald-900">
-                      Peer Interaction Requested
-                    </h4>
-                    <p className="text-xs text-emerald-700">
-                      Request initiated for peer ID <span className="font-mono">{requestedPeerId}</span>. Ready for later Request & Scheduling flow.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRequestedPeerId(null)}
-                  className="text-xs text-emerald-800 hover:text-emerald-950 underline font-medium cursor-pointer"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-
             {/* ALTERNATE STATE 1: NO SUITABLE MATCH */}
             {matchSystemResult && matchSystemResult.status === 'NO_MATCH' ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center space-y-5">
-                <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-extrabold shadow-xs">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 sm:p-10 text-center space-y-6">
+                <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-3xl font-extrabold shadow-sm">
                   !
                 </div>
                 <div className="space-y-2">
-                  <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-amber-200 text-amber-900 uppercase tracking-wider">
-                    Alternate State 1
-                  </span>
-                  <h3 className="text-2xl font-extrabold text-amber-950">
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-950">
                     No suitable match found right now.
                   </h3>
-                  <p className="text-sm text-amber-800 max-w-md mx-auto leading-relaxed">
-                    No active peers currently match both your target role (<span className="font-semibold">{targetRole === 'Other' ? customRole : targetRole}</span>) and interview type (<span className="font-semibold">{interviewType}</span>).
+                  <p className="text-base text-amber-900 max-w-lg mx-auto leading-relaxed">
+                    No active peers currently match both your target role (<span className="font-bold">{targetRole === 'Other' ? customRole : targetRole}</span>) and interview type (<span className="font-bold">{interviewType}</span>).
                   </p>
                 </div>
 
@@ -1391,9 +1363,6 @@ export default function MockInterviewPeerFinderApp() {
                     !
                   </div>
                   <div className="space-y-2">
-                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-extrabold bg-rose-200 text-rose-900 uppercase tracking-wider">
-                      Alternate State 2
-                    </span>
                     <h2 className="text-2xl sm:text-3xl font-extrabold text-rose-950 tracking-tight">
                       Your selected peer isn't available.
                     </h2>
@@ -1535,7 +1504,7 @@ export default function MockInterviewPeerFinderApp() {
               </div>
             )}
 
-            {/* STEP 4C: FINAL MVP STATE - MOCK INTERVIEW SCHEDULED */}
+            {/* STEP 4C: FINAL STATE - MOCK INTERVIEW SCHEDULED */}
             {interactionStatus === 'SCHEDULED' && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 space-y-6 shadow-sm text-center sm:text-left">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 border-b border-emerald-200 pb-6">
@@ -1543,9 +1512,6 @@ export default function MockInterviewPeerFinderApp() {
                     ✓
                   </div>
                   <div className="space-y-1.5">
-                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-extrabold bg-emerald-600 text-white uppercase tracking-wider">
-                      Final MVP State
-                    </span>
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-emerald-950 tracking-tight">
                       Mock interview scheduled
                     </h2>
