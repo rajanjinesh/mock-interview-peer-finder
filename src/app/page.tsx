@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { findAndRankPeers, MatchSystemResult, PeerMatch } from '@/lib/matchingSystem';
+import { initPostHog, capturePostHogEvent } from '@/lib/posthog';
 
 const ROLE_OPTIONS = [
   'Product Manager',
@@ -166,6 +167,10 @@ export default function MockInterviewPeerFinderApp() {
   const [activeResumeModalPeer, setActiveResumeModalPeer] = useState<any | null>(null);
   const [expandedAiCardMap, setExpandedAiCardMap] = useState<Record<string, boolean>>({});
 
+  useEffect(() => {
+    initPostHog();
+  }, []);
+
   const toggleAiExplanationCollapse = (peerId: string) => {
     setExpandedAiCardMap((prev) => ({
       ...prev,
@@ -275,6 +280,13 @@ export default function MockInterviewPeerFinderApp() {
         if (data) setRequestId(data.id);
       }
 
+      capturePostHogEvent('interview_requirements_submitted', {
+        role: finalRole,
+        seniority: seniorityLevel,
+        interview_type: interviewType,
+        skills: selectedSkills,
+      });
+
       setCurrentStep(2);
     } catch (err: any) {
       console.error('Error saving profile intake:', err);
@@ -357,6 +369,12 @@ export default function MockInterviewPeerFinderApp() {
       setMatchSystemResult(matchingRes);
       setCurrentStep(3);
 
+      if (matchingRes.status === 'SUCCESS' && matchingRes.matches && matchingRes.matches.length > 0) {
+        capturePostHogEvent('peer_matches_received', {
+          match_count: matchingRes.matches.length,
+        });
+      }
+
       // Background AI Explanation Layer (WHY)
       if (matchingRes.status === 'SUCCESS' && matchingRes.matches.length > 0) {
         setIsAiLoading(true);
@@ -395,6 +413,10 @@ export default function MockInterviewPeerFinderApp() {
       ? matchObj.common_availability[0]
       : (selectedAvailability[0] || 'Weekday Evenings');
     setSelectedScheduledSlot(defaultSlot);
+
+    capturePostHogEvent('peer_request_submitted', {
+      selected_peer: matchObj.peer_profile?.full_name || matchObj.peer_profile || matchObj,
+    });
 
     try {
       const peerId = matchObj.peer_profile?.id || matchObj.id;
