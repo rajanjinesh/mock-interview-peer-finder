@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { findAndRankPeers, MatchSystemResult, PeerMatch } from '@/lib/matchingSystem';
-import { initPostHog, capturePostHogEvent, isPostHogFeatureEnabled, onPostHogFeatureFlags } from '@/lib/posthog';
+import { initPostHog, capturePostHogEvent, isPostHogFeatureEnabled, onPostHogFeatureFlags, getPostHogFeatureFlag } from '@/lib/posthog';
 
 const ROLE_OPTIONS = [
   'Product Manager',
@@ -168,21 +168,26 @@ export default function MockInterviewPeerFinderApp() {
   const [expandedAiCardMap, setExpandedAiCardMap] = useState<Record<string, boolean>>({});
   // Feature Flag State (Default false = Safe Initial State while PostHog is evaluating)
   const [showLinkedInResume, setShowLinkedInResume] = useState<boolean>(false);
+  // Experiment Variant State (Default 'control' = Safe Fallback)
+  const [continueButtonVariant, setContinueButtonVariant] = useState<string>('control');
 
   useEffect(() => {
     initPostHog();
 
-    // Evaluate flag on initial load if ready
-    const checkFlag = () => {
+    // Evaluate flags and experiment variants on initial load if ready
+    const checkFlags = () => {
       const enabled = isPostHogFeatureEnabled('linkedin_resume_profile');
       setShowLinkedInResume(Boolean(enabled));
+
+      const variant = getPostHogFeatureFlag('continue-button-color-test');
+      setContinueButtonVariant(variant === 'test' ? 'test' : 'control');
     };
 
-    checkFlag();
+    checkFlags();
 
     // Subscribe to feature flag updates dynamically
     const unsubscribe = onPostHogFeatureFlags(() => {
-      checkFlag();
+      checkFlags();
     });
 
     return () => {
@@ -809,7 +814,11 @@ export default function MockInterviewPeerFinderApp() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent text-base font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className={`w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent text-base font-bold rounded-xl text-white shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  continueButtonVariant === 'test'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
+                    : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
+                }`}
               >
                 {isSubmitting ? 'Saving Profile...' : 'Continue to Choose My Mock Interview Time Slots →'}
               </button>

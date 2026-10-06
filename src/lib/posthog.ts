@@ -68,3 +68,19 @@ export const onPostHogFeatureFlags = (callback: () => void) => {
     console.error('PostHog feature flags listener error:', err);
   }
 };
+
+export const getPostHogFeatureFlag = (flagKey: string): string | boolean | undefined => {
+  if (typeof window === 'undefined') return undefined;
+
+  if (!isInitialized && !posthog.__loaded) {
+    initPostHog();
+  }
+
+  try {
+    return posthog.getFeatureFlag(flagKey);
+  } catch (err) {
+    console.error(`PostHog getFeatureFlag error for '${flagKey}':`, err);
+    return undefined;
+  }
+};
+
