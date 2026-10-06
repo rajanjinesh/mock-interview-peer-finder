@@ -39,3 +39,32 @@ export const capturePostHogEvent = (eventName: string, properties?: Record<strin
     console.error(`PostHog capture error for event '${eventName}':`, err);
   }
 };
+
+export const isPostHogFeatureEnabled = (flagKey: string): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  if (!isInitialized && !posthog.__loaded) {
+    initPostHog();
+  }
+
+  try {
+    return Boolean(posthog.isFeatureEnabled(flagKey));
+  } catch (err) {
+    console.error(`PostHog feature flag evaluation error for '${flagKey}':`, err);
+    return false;
+  }
+};
+
+export const onPostHogFeatureFlags = (callback: () => void) => {
+  if (typeof window === 'undefined') return;
+
+  if (!isInitialized && !posthog.__loaded) {
+    initPostHog();
+  }
+
+  try {
+    return posthog.onFeatureFlags(callback);
+  } catch (err) {
+    console.error('PostHog feature flags listener error:', err);
+  }
+};
