@@ -15,6 +15,7 @@ export const initPostHog = () => {
   if (posthogKey) {
     posthog.init(posthogKey, {
       api_host: posthogHost,
+      person_profiles: 'always',
       capture_pageview: false,
       capture_pageleave: false,
       autocapture: false,
