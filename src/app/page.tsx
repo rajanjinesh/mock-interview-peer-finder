@@ -415,6 +415,11 @@ export default function MockInterviewPeerFinderApp() {
               setMatchSystemResult((prev) =>
                 prev ? { ...prev, matches: data.matches } : prev
               );
+              data.matches.forEach((m: any) => {
+                if (m.ai_usage) {
+                  capturePostHogEvent('gemini_token_usage', m.ai_usage);
+                }
+              });
             }
           })
           .catch((err) => {

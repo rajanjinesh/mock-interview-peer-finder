@@ -1,4 +1,4 @@
-﻿import { getGeminiClient } from '@/lib/geminiClient';
+import { getGeminiClient } from '@/lib/geminiClient';
 import { PeerMatch, CandidateRequirementInput } from '@/lib/matchingSystem';
 
 export interface AIExplanationOutput {
@@ -8,10 +8,94 @@ export interface AIExplanationOutput {
   why_suitable: string;
 }
 
+export interface GeminiTokenUsageMetrics {
+  model: string;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  latency_ms: number;
+  estimated_input_cost_usd: number | null;
+  estimated_output_cost_usd: number | null;
+  estimated_total_cost_usd: number | null;
+}
+
 export interface PeerMatchWithAI extends PeerMatch {
   ai_explanation?: AIExplanationOutput;
   ai_status?: 'SUCCESS' | 'UNAVAILABLE' | 'ERROR';
   ai_error_message?: string;
+  ai_usage?: GeminiTokenUsageMetrics;
+}
+
+const GEMINI_MODEL = 'gemini-3.6-flash';
+
+// Verified Google AI pricing per 1,000,000 tokens (USD), overridable via environment variables
+const MODEL_PRICING_PER_1M_USD: Record<string, { input: number; output: number }> = {
+  'gemini-3.6-flash': {
+    input: 0.75,
+    output: 3.75,
+  },
+};
+
+function getModelPricing(model: string): { input: number; output: number } | null {
+  const envInput = process.env.GEMINI_INPUT_COST_PER_1M_USD
+    ? Number(process.env.GEMINI_INPUT_COST_PER_1M_USD)
+    : NaN;
+  const envOutput = process.env.GEMINI_OUTPUT_COST_PER_1M_USD
+    ? Number(process.env.GEMINI_OUTPUT_COST_PER_1M_USD)
+    : NaN;
+
+  if (!Number.isNaN(envInput) && !Number.isNaN(envOutput)) {
+    return { input: envInput, output: envOutput };
+  }
+
+  return MODEL_PRICING_PER_1M_USD[model] || null;
+}
+
+function buildGeminiUsageMetrics(
+  model: string,
+  usageMetadata: any,
+  latencyMs: number
+): GeminiTokenUsageMetrics {
+  const inputTokens =
+    typeof usageMetadata?.promptTokenCount === 'number'
+      ? usageMetadata.promptTokenCount
+      : null;
+  const outputTokens =
+    typeof usageMetadata?.candidatesTokenCount === 'number'
+      ? usageMetadata.candidatesTokenCount
+      : null;
+  const totalTokens =
+    typeof usageMetadata?.totalTokenCount === 'number'
+      ? usageMetadata.totalTokenCount
+      : inputTokens !== null && outputTokens !== null
+      ? inputTokens + outputTokens
+      : null;
+
+  const pricing = getModelPricing(model);
+
+  const estimatedInputCostUsd =
+    pricing && inputTokens !== null
+      ? Number(((inputTokens / 1_000_000) * pricing.input).toFixed(8))
+      : null;
+  const estimatedOutputCostUsd =
+    pricing && outputTokens !== null
+      ? Number(((outputTokens / 1_000_000) * pricing.output).toFixed(8))
+      : null;
+  const estimatedTotalCostUsd =
+    estimatedInputCostUsd !== null && estimatedOutputCostUsd !== null
+      ? Number((estimatedInputCostUsd + estimatedOutputCostUsd).toFixed(8))
+      : null;
+
+  return {
+    model,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens,
+    latency_ms: latencyMs,
+    estimated_input_cost_usd: estimatedInputCostUsd,
+    estimated_output_cost_usd: estimatedOutputCostUsd,
+    estimated_total_cost_usd: estimatedTotalCostUsd,
+  };
 }
 
 const SYSTEM_PROMPT = `
@@ -34,7 +118,7 @@ CRITICAL CONSTRAINTS & RULES:
 export async function generateAIExplanationForMatch(
   userReq: CandidateRequirementInput,
   match: PeerMatch
-): Promise<AIExplanationOutput> {
+): Promise<{ explanation: AIExplanationOutput; usage: GeminiTokenUsageMetrics }> {
   const ai = getGeminiClient();
 
   const payload = {
@@ -61,8 +145,9 @@ export async function generateAIExplanationForMatch(
     },
   };
 
+  const startTime = Date.now();
   const response = await ai.models.generateContent({
-    model: 'gemini-3.6-flash',
+    model: GEMINI_MODEL,
     contents: [
       { text: SYSTEM_PROMPT },
       { text: `STRUCTURED INPUT:\n${JSON.stringify(payload, null, 2)}` },
@@ -71,12 +156,15 @@ export async function generateAIExplanationForMatch(
       responseMimeType: 'application/json',
     },
   });
+  const latencyMs = Date.now() - startTime;
+
+  const usage = buildGeminiUsageMetrics(GEMINI_MODEL, response.usageMetadata, latencyMs);
 
   const rawText = response.text || '{}';
   const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
   const parsed = JSON.parse(cleanedText);
 
-  return {
+  const explanation: AIExplanationOutput = {
     match_strength_explanation: parsed.match_strength_explanation || `Rated ${match.match_score}% match strength based on deterministic matching rules.`,
     key_strengths: Array.isArray(parsed.key_strengths) && parsed.key_strengths.length > 0
       ? parsed.key_strengths
@@ -90,6 +178,8 @@ export async function generateAIExplanationForMatch(
       : [`Availability overlap: ${match.common_availability.join(', ') || 'Limited'}`],
     why_suitable: parsed.why_suitable || `${match.peer_profile.full_name} is a strong peer candidate for your ${match.peer_profile.interview_type} mock interview.`,
   };
+
+  return { explanation, usage };
 }
 
 export async function explainPeerMatches(
@@ -100,11 +190,12 @@ export async function explainPeerMatches(
 
   for (const match of matches) {
     try {
-      const explanation = await generateAIExplanationForMatch(userReq, match);
+      const { explanation, usage } = await generateAIExplanationForMatch(userReq, match);
       results.push({
         ...match,
         ai_explanation: explanation,
         ai_status: 'SUCCESS',
+        ai_usage: usage,
       });
     } catch (err: any) {
       console.error(`AI explanation failed for peer ${match.id}:`, err);
